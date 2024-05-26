@@ -1,0 +1,7 @@
+numpy
+pytest
+opencv-python
+tensorflow
+scikit-learn
+scikeras
+psutil
