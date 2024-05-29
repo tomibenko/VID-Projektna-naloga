@@ -1,16 +1,38 @@
 import os
-
-# Onemogočanje TensorRT in oneDNN optimizacij
-os.environ['TF_TRT_MODE'] = '0'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
+import cv2
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, Input
 from sklearn.model_selection import GridSearchCV
 from scikeras.wrappers import KerasClassifier
+from pymongo import MongoClient
 import psutil
+
+# Konfiguracija za MongoDB
+client = MongoClient('mongodb+srv://zanluka:g1NmZuoD4MHnACDp@razvojapkzainternet.tb9k65s.mongodb.net/')
+db = client['users'] 
+verification_codes_col = db['']
+
+# 1. Zajemanje slik
+def capture_images(output_dir='captured_images', num_images=100):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    cap = cv2.VideoCapture(0)
+    count = 0
+    while count < num_images:
+        ret, frame = cap.read()
+        if ret:
+            img_path = os.path.join(output_dir, f'image_{count}.jpg')
+            cv2.imwrite(img_path, frame)
+            count += 1
+            print(f'Captured {count}/{num_images}')
+    cap.release()
+    cv2.destroyAllWindows()
+
+# Onemogočanje TensorRT in oneDNN optimizacij
+os.environ['TF_TRT_MODE'] = '0'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 def print_memory_usage():
     process = psutil.Process(os.getpid())
