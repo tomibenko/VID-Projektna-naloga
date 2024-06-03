@@ -21,7 +21,7 @@ app = Flask(__name__)
 def capture_images(output_dir='captured_images', num_images=100):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)   
     count = 0
     while count < num_images:
         ret, frame = cap.read()
@@ -167,3 +167,6 @@ def verify_code():
         return jsonify({"message": "Verification successful."}), 200
     else:
         return jsonify({"message": "Verification failed."}), 401
+
+if __name__ == '__main__':
+    app.run(debug=True)
