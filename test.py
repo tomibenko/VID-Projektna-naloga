@@ -1,6 +1,6 @@
 import unittest
 import os
-import projekt  # Ensure this correctly references your 'projekt-1.py'
+import projekt-1
 import tempfile
 
 class TestProjekt(unittest.TestCase):
