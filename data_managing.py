@@ -3,7 +3,7 @@ import cv2
 import random
 import numpy as np
 from pymongo import MongoClient
-from flask import Flask
+from flask import Flask, requests
 
 # Konfiguracija za MongoDB
 client = MongoClient('mongodb+srv://zanluka:g1NmZuoD4MHnACDp@razvojapkzainternet.tb9k65s.mongodb.net/')
@@ -106,3 +106,20 @@ def augment_image(img):
     augmented_images.append(erasing_img)
 
     return augmented_images
+
+# 4. Implementacija 2FA z uporabo Flask in FCM
+def send_push_notification(token, message):
+    url = 'https://fcm.googleapis.com/fcm/send'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'key={FCM_SERVER_KEY}',
+    }
+    payload = {
+        'to': token,
+        'notification': {
+            'title': '2FA Verification',
+            'body': message,
+        }
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    return response.json()
