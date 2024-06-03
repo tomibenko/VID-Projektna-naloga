@@ -1,6 +1,6 @@
 import unittest
 import os
-import projekt-1
+import projekt_1 as projekt
 import tempfile
 
 class TestProjekt(unittest.TestCase):
