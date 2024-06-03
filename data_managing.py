@@ -28,3 +28,15 @@ def capture_images(output_dir='captured_images', num_images=100):
             print(f'Captured {count}/{num_images}')
     cap.release()
     cv2.destroyAllWindows()
+
+# 2. Predobdelava slik
+def preprocess_images(input_dir='captured_images', output_dir='preprocessed_images'):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    for img_name in os.listdir(input_dir):
+        img_path = os.path.join(input_dir, img_name)
+        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        img = cv2.GaussianBlur(img, (5, 5), 0)
+        output_path = os.path.join(output_dir, img_name)
+        cv2.imwrite(output_path, img)
+        print(f'Preprocessed {img_name}')
