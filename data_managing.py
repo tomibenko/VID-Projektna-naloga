@@ -6,22 +6,23 @@ import random
 import requests
 from pymongo import MongoClient
 from flask import Flask, request, jsonify
-
+'''
 # Konfiguracija za MongoDB
 client = MongoClient('mongodb+srv://zanluka:g1NmZuoD4MHnACDp@razvojapkzainternet.tb9k65s.mongodb.net/')
-db = client['face_recognition']
-verification_codes_col = db['verification_codes']
-
-# FCM konfiguracija
-FCM_SERVER_KEY = 'YOUR_FCM_SERVER_KEY'
+db = client['face_recognition'] # Ime baze
+verification_codes_col = db['verification_codes'] # Ime zbirke v bazi
+'''
 
 app = Flask(__name__)
 
-# 1. Zajemanje slik
+# 1. Funkcija za zajem slik
 def capture_images(output_dir='captured_images', num_images=100):
     if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    cap = cv2.VideoCapture(0)   
+        os.makedirs(output_dir) # Ustvari mapo captured_images, če ne obstaja
+
+    # TODO:Dobi posnetek, ki se pošlje iz telefona. Zaenkrat uporabimo zajem s kamere
+    cap = cv2.VideoCapture(0)
+
     count = 0
     while count < num_images:
         ret, frame = cap.read()
@@ -36,7 +37,8 @@ def capture_images(output_dir='captured_images', num_images=100):
 # 2. Predobdelava slik
 def preprocess_images(input_dir='captured_images', output_dir='preprocessed_images'):
     if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        os.makedirs(output_dir) # Ustvari mapo preprocessed_images, če ne obstaja
+
     for img_name in os.listdir(input_dir):
         img_path = os.path.join(input_dir, img_name)
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
@@ -109,7 +111,19 @@ def augment_image(img):
 
     return augmented_images
 
-# 4. Implementacija 2FA z uporabo Flask in FCM
+# 4. Implementacija 2FA z uporabo Flask
+@app.route('/capture_images', methods=['POST'])
+def capture_images_endpoint():
+    data = request.get_json()
+    output_dir = data.get('output_dir', 'captured_images')
+    num_images = data.get('num_images', 100)
+    capture_images(output_dir, num_images)
+    return jsonify({'status': 'success'}), 200
+
+
+# Pošiljanje push obvestil na mobilno napravo
+# FCM konfiguracija
+FCM_SERVER_KEY = 'YOUR_FCM_SERVER_KEY'
 def send_push_notification(token, message):
     url = 'https://fcm.googleapis.com/fcm/send'
     headers = {
@@ -126,7 +140,7 @@ def send_push_notification(token, message):
     response = requests.post(url, headers=headers, json=payload)
     return response.json()
 
-
+''' 
 @app.route('/send_verification', methods=['POST'])
 
 # Pošiljanje verifikacijske kode
@@ -152,9 +166,9 @@ def send_verification():
     send_push_notification(device_token, message)
     return jsonify({"message": "Verification code sent."}), 200
 
-@app.route('/verify_code', methods=['POST'])
 
 # Verifikacija kode
+@app.route('/verify_code', methods=['POST'])
 def verify_code():
     data = request.json
     user_id = data['user_id']
@@ -167,6 +181,6 @@ def verify_code():
         return jsonify({"message": "Verification successful."}), 200
     else:
         return jsonify({"message": "Verification failed."}), 401
-
+'''
 if __name__ == '__main__':
     app.run(debug=True)
