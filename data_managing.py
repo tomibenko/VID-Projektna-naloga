@@ -19,12 +19,12 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # 1. Funkcija za zajem slik
-def capture_images(output_dir='captured_images', num_images=100):
+def capture_images(output_dir=UPLOAD_FOLDER, num_images=1):
     if not os.path.exists(output_dir):
-        os.makedirs(output_dir) # Ustvari mapo captured_images, če ne obstaja
+        os.makedirs(output_dir) # Ustvari mapo UPLOAD_FLODER, če ne obstaja
 
     # TODO:Dobi posnetek, ki se pošlje iz telefona. Zaenkrat uporabimo zajem s kamere
-    cap = cv2.VideoCapture(0)
+    cap = upload_file()
 
     count = 0
     while count < num_images:
@@ -62,7 +62,6 @@ def augment_dataset(input_dir='preprocessed_images', output_dir='augmented_image
             aug_img_path = os.path.join(output_dir, f'{img_name}_aug_{i}.jpg')
             cv2.imwrite(aug_img_path, aug_img)
             print(f'Augmented {img_name} as {img_name}_aug_{i}.jpg')
-
 def augment_image(img):
     augmented_images = []
     rows, cols = img.shape[:2]
@@ -124,7 +123,7 @@ def upload_file():
         return 'No selected file'
     if file:
         file.save(os.path.join(app.config['UPLOAD_FOLDER']))
-        return 'File uploaded successfully'
+        return file
 
 # 4. Implementacija 2FA z uporabo Flask
 @app.route('/capture_images', methods=['POST'])
@@ -203,3 +202,4 @@ if __name__ == '__main__':
         os.makedirs(UPLOAD_FOLDER)
 
     app.run(host='localhost', port=5000, debug=True)
+    capture_images()
