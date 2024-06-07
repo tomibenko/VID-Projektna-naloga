@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import random
 import requests
+import json
 from pymongo import MongoClient
 from flask import Flask, request, jsonify
 '''
@@ -14,6 +15,8 @@ verification_codes_col = db['verification_codes'] # Ime zbirke v bazi
 '''
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # 1. Funkcija za zajem slik
 def capture_images(output_dir='captured_images', num_images=100):
@@ -111,6 +114,18 @@ def augment_image(img):
 
     return augmented_images
 
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'image' not in request.files:
+        return 'No image part'
+    file = request.files['image']
+    if file.filename == '':
+        return 'No selected file'
+    if file:
+        file.save(os.path.join(app.config['UPLOAD_FOLDER']))
+        return 'File uploaded successfully'
+
 # 4. Implementacija 2FA z uporabo Flask
 @app.route('/capture_images', methods=['POST'])
 def capture_images_endpoint():
@@ -123,21 +138,22 @@ def capture_images_endpoint():
 
 # Pošiljanje push obvestil na mobilno napravo
 # FCM konfiguracija
-FCM_SERVER_KEY = 'YOUR_FCM_SERVER_KEY'
-def send_push_notification(token, message):
-    url = 'https://fcm.googleapis.com/fcm/send'
+def send_push_notification(to, title, body):
+    url = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
     headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'key={FCM_SERVER_KEY}',
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {access_token}"
     }
-    payload = {
-        'to': token,
-        'notification': {
-            'title': '2FA Verification',
-            'body': message,
+    data = {
+        "message": {
+            "token": to,
+            "notification": {
+                "title": title,
+                "body": body
+            }
         }
     }
-    response = requests.post(url, headers=headers, json=payload)
+    response = requests.post(url, headers=headers, data=json.dumps(data))
     return response.json()
 
 ''' 
@@ -183,4 +199,7 @@ def verify_code():
         return jsonify({"message": "Verification failed."}), 401
 '''
 if __name__ == '__main__':
-    app.run(debug=True)
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+    app.run(host='localhost', port=5000, debug=True)
