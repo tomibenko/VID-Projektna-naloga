@@ -1,10 +1,12 @@
 numpy
 pytest
 opencv-python
-tensorflow
+tensorflow[and-cuda]
 scikit-learn
 scikeras
 psutil
 flask
 pymongo
 requests
+
+

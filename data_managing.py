@@ -16,114 +16,110 @@ verification_codes_col = db['verification_codes'] # Ime zbirke v bazi
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
+KNOWN_FOLDER = 'test/known'  # Path for saving all processed images
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# 1. Funkcija za zajem slik
-def capture_images(output_dir=UPLOAD_FOLDER, num_images=1):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir) # Ustvari mapo UPLOAD_FLODER, če ne obstaja
-
-    # TODO:Dobi posnetek, ki se pošlje iz telefona. Zaenkrat uporabimo zajem s kamere
-    cap = upload_file()
-
-    count = 0
-    while count < num_images:
-        ret, frame = cap.read()
-        if ret:
-            img_path = os.path.join(output_dir, f'image_{count}.jpg')
-            cv2.imwrite(img_path, frame)
-            count += 1
-            print(f'Captured {count}/{num_images}')
-    cap.release()
-    cv2.destroyAllWindows()
-
-# 2. Predobdelava slik
-def preprocess_images(input_dir='captured_images', output_dir='preprocessed_images'):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir) # Ustvari mapo preprocessed_images, če ne obstaja
-
-    for img_name in os.listdir(input_dir):
-        img_path = os.path.join(input_dir, img_name)
-        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-        img = cv2.GaussianBlur(img, (5, 5), 0)
-        output_path = os.path.join(output_dir, img_name)
-        cv2.imwrite(output_path, img)
-        print(f'Preprocessed {img_name}')
-
-# 3. Augmentacija podatkov
-def augment_dataset(input_dir='preprocessed_images', output_dir='augmented_images'):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    for img_name in os.listdir(input_dir):
-        img_path = os.path.join(input_dir, img_name)
-        img = cv2.imread(img_path)
-        augmented_images = augment_image(img)
-        for i, aug_img in enumerate(augmented_images):
-            aug_img_path = os.path.join(output_dir, f'{img_name}_aug_{i}.jpg')
-            cv2.imwrite(aug_img_path, aug_img)
-            print(f'Augmented {img_name} as {img_name}_aug_{i}.jpg')
-def augment_image(img):
-    augmented_images = []
-    rows, cols = img.shape[:2]
-
-    # Flip horizontal
-    augmented_images.append(cv2.flip(img, 1))
-
-    # Rotate
-    M_rotate = cv2.getRotationMatrix2D((cols/2, rows/2), 10, 1)
-    augmented_images.append(cv2.warpAffine(img, M_rotate, (cols, rows)))
-
-    # Brightness adjustment
-    augmented_images.append(cv2.convertScaleAbs(img, alpha=1.5, beta=0))
-
-    # Gaussian noise
-    noise = np.random.normal(0, 25, img.shape).astype(np.uint8)
-    augmented_images.append(cv2.add(img, noise))
-
-    # Custom augmentations
-    # 1. Crop
-    start_row, start_col = int(rows * .1), int(cols * .1)
-    end_row, end_col = int(rows * .9), int(cols * .9)
-    cropped_img = img[start_row:end_row, start_col:end_col]
-    resized_cropped_img = cv2.resize(cropped_img, (cols, rows))
-    augmented_images.append(resized_cropped_img)
-
-    # 2. Salt and pepper noise
-    salt_pepper_noise = img.copy()
-    salt_pepper_prob = 0.02
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
-            rand = random.random()
-            if rand < salt_pepper_prob:
-                salt_pepper_noise[i][j] = 0
-            elif rand > 1 - salt_pepper_prob:
-                salt_pepper_noise[i][j] = 255
-    augmented_images.append(salt_pepper_noise)
-
-    # 3. Contrast adjustment
-    contrast_img = cv2.convertScaleAbs(img, alpha=2.0, beta=0)
-    augmented_images.append(contrast_img)
-
-    # 4. Random erasing
-    erasing_img = img.copy()
-    x, y = random.randint(0, cols - 50), random.randint(0, rows - 50)
-    w, h = random.randint(20, 50), random.randint(20, 50)
-    erasing_img[y:y+h, x:x+w] = 0
-    augmented_images.append(erasing_img)
-
-    return augmented_images
-
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(KNOWN_FOLDER):
+    os.makedirs(KNOWN_FOLDER)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'image' not in request.files:
-        return 'No image part'
-    file = request.files['image']
-    if file.filename == '':
-        return 'No selected file'
-    if file:
-        file.save(os.path.join(app.config['UPLOAD_FOLDER']))
-        return file
+    if 'video' not in request.files:
+        return jsonify({'status': 'failure', 'message': 'No video part'})
+    video = request.files['video']
+    if video.filename == '':
+        return jsonify({'status': 'failure', 'message': 'No selected file'})
+    video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
+    video.save(video_path)
+    return jsonify({'status': 'success', 'message': 'Video uploaded successfully', 'path': video_path})
+
+def extract_frames(video_path, output_dir):
+    cap = cv2.VideoCapture(video_path)
+    count = 0
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_path = os.path.join(output_dir, f'frame_{count}.jpg')
+        cv2.imwrite(frame_path, frame)
+        count += 1
+    cap.release()
+
+def random_augment_image(img):
+    def flip(img):
+        return cv2.flip(img, 1)
+
+    def rotate_image(img):
+        rows, cols = img.shape[:2]
+        M = cv2.getRotationMatrix2D((cols/2, rows/2), 10, 1)
+        return cv2.warpAffine(img, M, (cols, rows))
+
+    def adjust_brightness(img):
+        return cv2.convertScaleAbs(img, alpha=1.5, beta=0)
+
+    def add_gaussian_noise(img):
+        gauss = np.random.normal(0, 25, img.shape).astype(np.uint8)
+        return cv2.add(img, gauss)
+
+    def crop_and_resize(img):
+        rows, cols = img.shape[:2]
+        start_row, start_col = int(rows * .1), int(cols * .1)
+        end_row, end_col = int(rows * .9), int(cols * .9)
+        cropped = img[start_row:end_row, start_col:end_col]
+        return cv2.resize(cropped, (cols, rows))
+
+    def add_salt_and_pepper_noise(img):
+        salt_pepper_prob = 0.02
+        noisy = np.copy(img)
+        num_salt = np.ceil(salt_pepper_prob * img.size * 0.5)
+        coords = [np.random.randint(0, i - 1, int(num_salt)) for i in img.shape]
+        noisy[coords[0], coords[1], :] = 1
+
+        num_pepper = np.ceil(salt_pepper_prob * img.size * 0.5)
+        coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in img.shape]
+        noisy[coords[0], coords[1], :] = 0
+        return noisy
+
+    def adjust_contrast(img):
+        return cv2.convertScaleAbs(img, alpha=2.0, beta=0)
+
+    def random_erasing(img):
+        x, y = random.randint(0, img.shape[1] - 50), random.randint(0, img.shape[0] - 50)
+        w, h = random.randint(20, 50), random.randint(20, 50)
+        img[y:y+h, x:x+w] = 0
+        return img
+
+    augmentation_functions = [flip, rotate_image, adjust_brightness, add_gaussian_noise, crop_and_resize, add_salt_and_pepper_noise, adjust_contrast, random_erasing]
+    chosen_functions = random.sample(augmentation_functions, k=random.randint(1, len(augmentation_functions)))
+
+    for func in chosen_functions:
+        img = func(img)
+
+    return img
+
+def process_and_save_frames(frames_dir):
+    frames = os.listdir(frames_dir)
+    for frame in frames:
+        img = cv2.imread(os.path.join(frames_dir, frame))
+        img = random_augment_image(img)
+        cv2.imwrite(os.path.join(KNOWN_FOLDER, frame), img)
+
+@app.route('/process_video', methods=['POST'])
+def process_video():
+    video_path = request.json['video_path']
+    frames_dir = 'extracted_frames'
+    if not os.path.exists(frames_dir):
+        os.makedirs(frames_dir)
+    extract_frames(video_path, frames_dir)
+    process_and_save_frames(frames_dir)
+    return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
+
+if __name__ == '__main__':
+    app.run(host='localhost', port=5000, debug=True)
+
+
 
 # 4. Implementacija 2FA z uporabo Flask
 @app.route('/capture_images', methods=['POST'])
@@ -131,7 +127,7 @@ def capture_images_endpoint():
     data = request.get_json()
     output_dir = data.get('output_dir', 'captured_images')
     num_images = data.get('num_images', 100)
-    capture_images(output_dir, num_images)
+  #  capture_images(output_dir, num_images)
     return jsonify({'status': 'success'}), 200
 
 
@@ -197,9 +193,3 @@ def verify_code():
     else:
         return jsonify({"message": "Verification failed."}), 401
 '''
-if __name__ == '__main__':
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-
-    app.run(host='localhost', port=5000, debug=True)
-    capture_images()

@@ -76,8 +76,8 @@ print("Initial model saved as initial_model.h5")
 print_memory_usage()
 
 # Hyperparameter optimization
-model = KerasClassifier(model=create_model, optimizer='adam', dropout_rate=0.5, epochs=1, batch_size=32)
-
+#model = KerasClassifier(model=create_model, optimizer='adam', dropout_rate=0.5, epochs=2, batch_size=32)
+'''
 param_grid = {
     'optimizer': ['adam', 'rmsprop'],
     'dropout_rate': [0.5, 0.6],
@@ -85,8 +85,9 @@ param_grid = {
     'batch_size': [32, 64]
 }
 
-grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=-1, cv=3)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, cv=3)
 grid_result = grid.fit(train_data)
+
 print("Grid search complete")
 
 best_params = grid_result.best_params_
@@ -98,9 +99,9 @@ print_memory_usage()
 best_model = grid_result.best_estimator_.model_
 best_model.save("best_model.h5")
 print("Best model saved as best_model.h5")
-
+'''
 # Evaluate the best model
-test_loss, test_accuracy = best_model.evaluate(val_data)
+test_loss, test_accuracy = model.evaluate(val_data)
 print(f"Validation accuracy: {test_accuracy}")
 
 print_memory_usage()
