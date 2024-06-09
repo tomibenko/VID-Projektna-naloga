@@ -1,26 +1,18 @@
 import os
-import os
 import cv2
 import numpy as np
 import random
-import requests
-import json
 import subprocess
-from pymongo import MongoClient
 from flask import Flask, request, jsonify
-
-'''
-# Konfiguracija za MongoDB
-client = MongoClient('mongodb+srv://zanluka:g1NmZuoD4MHnACDp@razvojapkzainternet.tb9k65s.mongodb.net/')
-db = client['face_recognition'] # Ime baze
-verification_codes_col = db['verification_codes'] # Ime zbirke v bazi
-'''
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 KNOWN_FOLDER = 'test/known'  # Path for saving all processed images
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # Set max upload size to 1GB
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 if not os.path.exists(KNOWN_FOLDER):
@@ -37,7 +29,7 @@ def upload_file():
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
     video.save(video_path)
 
-    process_video()
+    process_video(video_path)
 
     return jsonify({'status': 'success', 'message': 'Video uploaded successfully', 'path': video_path})
 
@@ -59,7 +51,7 @@ def random_augment_image(img):
 
     def rotate_image(img):
         rows, cols = img.shape[:2]
-        M = cv2.getRotationMatrix2D((cols/2, rows/2), 10, 1)
+        M = cv2.getRotationMatrix2D((cols / 2, rows / 2), 10, 1)
         return cv2.warpAffine(img, M, (cols, rows))
 
     def adjust_brightness(img):
@@ -113,8 +105,7 @@ def process_and_save_frames(frames_dir):
         cv2.imwrite(os.path.join(KNOWN_FOLDER, frame), img)
 
 @app.route('/process_video', methods=['POST'])
-def process_video():
-    video_path = request.json['video_path']
+def process_video(video_path):
     frames_dir = 'extracted_frames'
     if not os.path.exists(frames_dir):
         os.makedirs(frames_dir)
@@ -126,79 +117,4 @@ def process_video():
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5000, debug=True)
-
-
-
-# 4. Implementacija 2FA z uporabo Flask
-@app.route('/capture_images', methods=['POST'])
-def capture_images_endpoint():
-    data = request.get_json()
-    output_dir = data.get('output_dir', 'captured_images')
-    num_images = data.get('num_images', 100)
-  #  capture_images(output_dir, num_images)
-    return jsonify({'status': 'success'}), 200
-
-
-# Pošiljanje push obvestil na mobilno napravo
-# FCM konfiguracija
-def send_push_notification(to, title, body):
-    url = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer {access_token}"
-    }
-    data = {
-        "message": {
-            "token": to,
-            "notification": {
-                "title": title,
-                "body": body
-            }
-        }
-    }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    return response.json()
-
-''' 
-@app.route('/send_verification', methods=['POST'])
-
-# Pošiljanje verifikacijske kode
-def send_verification():
-    data = request.json
-    user_id = data['user_id']
-    device_token = data['device_token']
-    
-    code = random.randint(100000, 999999)
-    verification_data = {
-        "user_id": user_id,
-        "code": code
-    }
-    
-    # Shranjevanje verifikacijske kode v MongoDB
-    verification_codes_col.update_one(
-        {"user_id": user_id}, 
-        {"$set": verification_data}, 
-        upsert=True
-    )
-    
-    message = f"Your verification code is {code}"
-    send_push_notification(device_token, message)
-    return jsonify({"message": "Verification code sent."}), 200
-
-
-# Verifikacija kode
-@app.route('/verify_code', methods=['POST'])
-def verify_code():
-    data = request.json
-    user_id = data['user_id']
-    code = int(data['code'])
-    
-    # Preverjanje kode v MongoDB
-    verification_entry = verification_codes_col.find_one({"user_id": user_id})
-    
-    if verification_entry and verification_entry['code'] == code:
-        return jsonify({"message": "Verification successful."}), 200
-    else:
-        return jsonify({"message": "Verification failed."}), 401
-'''
+    app.run(host='http://localhost', port=8089, debug=True)
