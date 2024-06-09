@@ -122,6 +122,7 @@ def process_video():
     process_and_save_frames(frames_dir)
 
     subprocess.run(['python', 'projekt_1.py'])
+    
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
 if __name__ == '__main__':
