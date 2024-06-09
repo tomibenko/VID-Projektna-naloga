@@ -117,4 +117,4 @@ def process_video(video_path):
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
 if __name__ == '__main__':
-    app.run(host='http://localhost', port=8089, debug=True)
+    app.run(host='http://localhost', port=5000, debug=True)
