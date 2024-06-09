@@ -5,8 +5,10 @@ import numpy as np
 import random
 import requests
 import json
+import subprocess
 from pymongo import MongoClient
 from flask import Flask, request, jsonify
+
 '''
 # Konfiguracija za MongoDB
 client = MongoClient('mongodb+srv://zanluka:g1NmZuoD4MHnACDp@razvojapkzainternet.tb9k65s.mongodb.net/')
@@ -29,10 +31,14 @@ def upload_file():
     if 'video' not in request.files:
         return jsonify({'status': 'failure', 'message': 'No video part'})
     video = request.files['video']
+    user_id = request.form['user_id']
     if video.filename == '':
         return jsonify({'status': 'failure', 'message': 'No selected file'})
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
     video.save(video_path)
+
+    process_video()
+
     return jsonify({'status': 'success', 'message': 'Video uploaded successfully', 'path': video_path})
 
 def extract_frames(video_path, output_dir):
@@ -114,6 +120,8 @@ def process_video():
         os.makedirs(frames_dir)
     extract_frames(video_path, frames_dir)
     process_and_save_frames(frames_dir)
+
+    subprocess.run(['python', 'projekt_1.py'])
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
 if __name__ == '__main__':

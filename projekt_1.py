@@ -7,6 +7,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import GridSearchCV
 from scikeras.wrappers import KerasClassifier
 import psutil
+import argparse
 
 def print_memory_usage():
     process = psutil.Process(os.getpid())
@@ -64,14 +65,20 @@ def create_model(optimizer='adam', dropout_rate=0.5):
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--user_id', type=str, required=True, help='User ID for the model')
+args = parser.parse_args()
+username = args.username
+
 # Train initial model
 model = create_model()
 history = model.fit(train_data, epochs=1, validation_data=val_data)
 print("Initial model training complete")
 
 # Save the initial model
-model.save("initial_model.h5")
-print("Initial model saved as initial_model.h5")
+model_save_path = f"{user_id}.h5"
+model.save(model_save_path)
+print("Initial model saved as {model_save_path}")
 
 print_memory_usage()
 
