@@ -3,7 +3,9 @@ import cv2
 import numpy as np
 import random
 import subprocess
+import shutil
 from flask import Flask, request, jsonify
+from tensorflow.keras.models import load_model  
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -112,8 +114,58 @@ def process_video(video_path,user_id):
     process_and_save_frames(frames_dir)
 
     subprocess.run(['python', 'projekt_1.py', '--user_id', user_id])
-    
+
+    # Izbrise vse slike iz test/known in uploads
+    for folder in [KNOWN_FOLDER, UPLOAD_FOLDER]:
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
+
+def user_has_image(user_id):
+    user_images = [f for f in os.listdir(UPLOAD_FOLDER) if f.startswith(user_id)]
+    return len(user_images) > 0
+
+# 2FA login
+@app.route('/login', methods=['POST'])
+def login():
+    user_id = request.form['user_id']
+    image = request.files['image']
+    
+    if not user_id or 'image' not in request.files:
+        return jsonify({'status': 'failure', 'message': 'User ID or image missing'})
+
+    image_path = os.path.join(UPLOAD_FOLDER, image.filename)
+    image.save(image_path)
+    img = cv2.imread(image_path)
+
+    if img is None:
+        return jsonify({'status': 'failure', 'message': 'Invalid image'})
+
+    img = cv2.resize(img, (224, 224))  # Predpostavimo, da model pričakuje slike velikosti 224x224
+    img = np.expand_dims(img, axis=0)  # Dodamo batch dimenzijo
+
+    if user_has_image(user_id):
+        model_path = os.path.join('models', f'{user_id}.h5')
+        if not os.path.exists(model_path):
+            return jsonify({'status': 'failure', 'message': 'Model not found'})
+
+        model = load_model(model_path)
+        prediction = model.predict(img)
+        
+        if prediction[0][0] > 0.7:  # Tukaj predpostavimo, da uspešna predikcija vrne neko vrednost
+            return jsonify({'status': 'success', 'exists': True})
+        else:
+            return jsonify({'status': 'success', 'exists': False})
+    else:
+        return jsonify({'status': 'success', 'exists': False})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
