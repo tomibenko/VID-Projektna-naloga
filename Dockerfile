@@ -1,4 +1,4 @@
- #Use the official TensorFlow GPU base image
+# Use the official TensorFlow GPU base image
 FROM tensorflow/tensorflow:latest-gpu
 
 # Set working directory
@@ -18,11 +18,12 @@ RUN pip3 install --upgrade pip
 # Copy the application files into the container
 COPY . /app
 
+
 # Install Python dependencies
 RUN pip3 install -r requirements.txt
 
 # Expose the application port
-EXPOSE 5000
+EXPOSE 8080
 
 # Set the command to run the application
 CMD ["python3", "data_managing.py"]
