@@ -1,4 +1,4 @@
- Use the official TensorFlow GPU base image
+ #Use the official TensorFlow GPU base image
 FROM tensorflow/tensorflow:latest-gpu
 
 # Set working directory
