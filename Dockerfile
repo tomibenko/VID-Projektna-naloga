@@ -20,7 +20,7 @@ COPY . /app
 
 
 # Install Python dependencies
-RUN pip3 install -r requirements.txt
+RUN pip3 install --ignore-installed -r requirements.txt
 
 # Expose the application port
 EXPOSE 8080
