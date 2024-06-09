@@ -68,7 +68,7 @@ def create_model(optimizer='adam', dropout_rate=0.5):
 parser = argparse.ArgumentParser()
 parser.add_argument('--user_id', type=str, required=True, help='User ID for the model')
 args = parser.parse_args()
-username = args.username
+username = args.user_id
 
 # Train initial model
 model = create_model()
@@ -76,7 +76,7 @@ history = model.fit(train_data, epochs=1, validation_data=val_data)
 print("Initial model training complete")
 
 # Save the initial model
-model_save_path = f"{user_id}.h5"
+model_save_path = f"{username}.h5"
 model.save(model_save_path)
 print("Initial model saved as {model_save_path}")
 

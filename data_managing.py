@@ -8,7 +8,6 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 KNOWN_FOLDER = 'test/known'  # Path for saving all processed images
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # Set max upload size to 1GB
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -29,7 +28,7 @@ def upload_file():
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], video.filename)
     video.save(video_path)
 
-    process_video(video_path)
+    process_video(video_path,user_id)
 
     return jsonify({'status': 'success', 'message': 'Video uploaded successfully', 'path': video_path})
 
@@ -105,16 +104,16 @@ def process_and_save_frames(frames_dir):
         cv2.imwrite(os.path.join(KNOWN_FOLDER, frame), img)
 
 @app.route('/process_video', methods=['POST'])
-def process_video(video_path):
+def process_video(video_path,user_id):
     frames_dir = 'extracted_frames'
     if not os.path.exists(frames_dir):
         os.makedirs(frames_dir)
     extract_frames(video_path, frames_dir)
     process_and_save_frames(frames_dir)
 
-    subprocess.run(['python', 'projekt_1.py'])
+    subprocess.run(['python', 'projekt_1.py', '--user_id', user_id])
     
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
 if __name__ == '__main__':
-    app.run(host='http://localhost', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
