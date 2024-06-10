@@ -8,5 +8,5 @@ psutil
 flask
 pymongo
 requests
-
+Pillow
 
