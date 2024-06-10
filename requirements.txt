@@ -8,4 +8,4 @@ flask
 pymongo
 requests
 Pillow
-tensorflow-gpu
+tensorflow
