@@ -129,9 +129,9 @@ def process_video(video_path,user_id):
 
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
-def user_has_image(user_id):
-    user_images = [f for f in os.listdir(UPLOAD_FOLDER) if f.startswith(user_id)]
-    return len(user_images) > 0
+def user_has_model(user_id):
+    user_model = [f for f in os.listdir('.') if f.startswith(user_id)]
+    return len(user_model) > 0
 
 # 2FA login
 @app.route('/login', methods=['POST'])
@@ -152,8 +152,8 @@ def login():
     img = cv2.resize(img, (224, 224))  # Predpostavimo, da model pričakuje slike velikosti 224x224
     img = np.expand_dims(img, axis=0)  # Dodamo batch dimenzijo
 
-    if user_has_image(user_id):
-        model_path = os.path.join('models', f'{user_id}.h5')
+    if user_has_model(user_id):
+        model_path = os.path.join(f'{user_id}.h5')
         if not os.path.exists(model_path):
             return jsonify({'status': 'failure', 'message': 'Model not found'})
 
