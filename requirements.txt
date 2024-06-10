@@ -1,7 +1,6 @@
 numpy
 pytest
 opencv-python
-tensorflow[and-cuda]
 scikit-learn
 scikeras
 psutil
