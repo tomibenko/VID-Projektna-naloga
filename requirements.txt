@@ -9,7 +9,4 @@ flask
 pymongo
 requests
 bitarray
-struct
-time
 pillow
-math
