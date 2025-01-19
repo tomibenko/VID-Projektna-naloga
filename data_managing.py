@@ -6,6 +6,7 @@ import subprocess
 import shutil
 from flask import Flask, request, jsonify
 from tensorflow.keras.models import load_model  
+from image_compression import decompress_color_file
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -136,36 +137,44 @@ def user_has_image(user_id):
 # 2FA login
 @app.route('/login', methods=['POST'])
 def login():
-    user_id = request.form['user_id']
-    image = request.files['image']
-    
+    user_id = request.form.get('user_id')
     if not user_id or 'image' not in request.files:
         return jsonify({'status': 'failure', 'message': 'User ID or image missing'})
 
-    image_path = os.path.join(UPLOAD_FOLDER, image.filename)
-    image.save(image_path)
-    img = cv2.imread(image_path)
+    # 1) Save compressed file
+    compressed_file = request.files['image']
+    compressed_path = os.path.join(UPLOAD_FOLDER, compressed_file.filename)
+    compressed_file.save(compressed_path)
 
+    # 2) Decompress it into a real image (e.g. "decompressed.jpg")
+    decompressed_path = os.path.join(UPLOAD_FOLDER, "decompressed.jpg")
+    try:
+        decompress_color_file(compressed_path, decompressed_path)
+    except Exception as e:
+        return jsonify({'status': 'failure', 'message': f'Error decompressing: {str(e)}'})
+
+    # 3) Now read the decompressed image with OpenCV
+    img = cv2.imread(decompressed_path)
     if img is None:
-        return jsonify({'status': 'failure', 'message': 'Invalid image'})
+        return jsonify({'status': 'failure', 'message': 'Decompressed image is invalid'})
 
-    img = cv2.resize(img, (224, 224))  # Predpostavimo, da model pričakuje slike velikosti 224x224
-    img = np.expand_dims(img, axis=0)  # Dodamo batch dimenzijo
+    # Resize, batch dimension, etc.
+    img = cv2.resize(img, (224, 224))
+    img = np.expand_dims(img, axis=0)
 
-    if user_has_image(user_id):
-        model_path = os.path.join('models', f'{user_id}.h5')
-        if not os.path.exists(model_path):
-            return jsonify({'status': 'failure', 'message': 'Model not found'})
+    # 4) Load your user-specific model and make a prediction
+    model_path = os.path.join('models', f'{user_id}.h5')
+    if not os.path.exists(model_path):
+        return jsonify({'status': 'failure', 'message': 'Model not found'})
 
-        model = load_model(model_path)
-        prediction = model.predict(img)
-        
-        if prediction[0][0] > 0.7:  # Tukaj predpostavimo, da uspešna predikcija vrne neko vrednost
-            return jsonify({'status': 'success', 'exists': True})
-        else:
-            return jsonify({'status': 'success', 'exists': False})
+    model = load_model(model_path)
+    prediction = model.predict(img)
+
+    # Suppose > 0.7 is a "match"
+    if prediction[0][0] > 0.7:
+        return jsonify({'status': 'success', 'match': True})
     else:
-        return jsonify({'status': 'success', 'exists': False})
+        return jsonify({'status': 'success', 'match': False})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

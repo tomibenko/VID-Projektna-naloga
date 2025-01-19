@@ -8,5 +8,9 @@ psutil
 flask
 pymongo
 requests
-
-
+os
+bitarray
+struct
+time
+pillow
+math
