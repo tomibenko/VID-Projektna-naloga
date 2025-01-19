@@ -1,13 +1,13 @@
 numpy
 pytest
 opencv-python
+tensorflow
 scikit-learn
 scikeras
 psutil
 flask
 pymongo
 requests
-os
 bitarray
 struct
 time

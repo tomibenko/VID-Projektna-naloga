@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import struct
 import time
@@ -207,3 +206,18 @@ def compress_color_file(input_path, output_path):
 
 def decompress_color_file(input_path, output_path):
     decompress_color(input_path, output_path)
+
+'''
+if __name__ == "__main__":
+    input_path = "img.jpg"              
+    compressed_path = "img_compressed.bin"
+    decompressed_path = "img_decompressed.jpg"
+
+    compress_color_file(input_path, compressed_path)
+    print(f"Compressed '{input_path}' -> '{compressed_path}'")
+
+    decompress_color_file(compressed_path, decompressed_path)
+    print(f"Decompressed '{compressed_path}' -> '{decompressed_path}'")
+
+    print("Done. Check the current directory for the new files.")
+'''
