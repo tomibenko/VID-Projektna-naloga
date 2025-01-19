@@ -24,7 +24,7 @@ COPY . /app
 RUN pip3 install --ignore-installed -r requirements.txt
 
 # Expose the application port
-EXPOSE 8089
+EXPOSE 5000
 
 # Set the command to run the application
 CMD ["python3", "data_managing.py"]

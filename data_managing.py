@@ -130,9 +130,9 @@ def process_video(video_path,user_id):
 
     return jsonify({'status': 'success', 'message': 'Video processed and frames saved'})
 
-def user_has_image(user_id):
-    user_images = [f for f in os.listdir(UPLOAD_FOLDER) if f.startswith(user_id)]
-    return len(user_images) > 0
+def user_has_model(user_id):
+    user_model = [f for f in os.listdir('.') if f.startswith(user_id)]
+    return len(user_model) > 0
 
 # 2FA login
 @app.route('/login', methods=['POST'])
